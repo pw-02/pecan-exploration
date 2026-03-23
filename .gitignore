@@ -3,3 +3,7 @@
 atc_venv/*
 *.DS_Store
 experiments/pecan/atc_venv/*
+bazel
+tf_build
+bazel_dump
+cachew
