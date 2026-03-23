@@ -1,5 +1,5 @@
-path_base="/home/pw/projects/pecan-exploration"
-project_dir="/home/pw/projects/pecan-exploration/cachew"
+path_base="/home/pwatters/projects/pecan-exploration"
+project_dir="/home/pwatters/projects/pecan-exploration/cachew"
 
 output_user="${path_base}/bazel_dump"
 output_user_cpu="${output_user}/cpu"
