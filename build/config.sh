@@ -1,4 +1,4 @@
-path_base="/home/pwatters/projects/pecan-exploration"
+path_base="/home/pwatters/project/pecan-exploration"
 project_dir="/home/pwatters/projects/pecan-exploration/cachew"
 
 output_user="${path_base}/bazel_dump"

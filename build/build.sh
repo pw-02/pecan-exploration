@@ -1,46 +1,58 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 device=${1:-"cpu"}
 
 echo "Sourcing config.sh"
 source config.sh
 
-# Move to tf_sources
-cd ${project_dir}
+cd "${project_dir}"
 
-echo "Using ${output_user} as bazel output root"
-# Configure the TF build (We use the default options for now)
+# Tune these for your machine
+BAZEL_JOBS="${BAZEL_JOBS:-2}"
+BAZEL_RAM_MB="${BAZEL_RAM_MB:-8192}"
+
+COMMON_BAZEL_FLAGS=(
+  "--jobs=${BAZEL_JOBS}"
+  "--local_ram_resources=${BAZEL_RAM_MB}"
+  "--verbose_failures"
+)
+
 echo "Configuring build..."
 if [ "$#" -ne 1 ]; then
     echo "Building without CUDA support"
-    echo "Use ./build cuda to build with CUDA support."
-    printf '\n\n\n\n\n\n' | ./configure #&> /dev/null
-elif [ $1 == "cuda" ]; then
+    printf '\n\n\n\n\n\n' | ./configure
+elif [ "$1" = "cuda" ]; then
     echo "Building with CUDA support"
-    printf '\n\n\ny\n\n\n\n\n\n\n' | ./configure #&> /dev/null
-elif [ $1 == "tpu" ]; then
+    printf '\n\n\ny\n\n\n\n\n\n\n' | ./configure
+elif [ "$1" = "tpu" ]; then
     echo "Building with CUDA and tpu support"
-    printf '\n\n\ny\n\n7.0\n\n\n\n\n' | ./configure #&> /dev/null
+    printf '\n\n\ny\n\n7.0\n\n\n\n\n' | ./configure
 fi
 
-if [ "${device}" == "cpu" ]; then
+if [ "${device}" = "cpu" ]; then
+    bazel --output_user_root="${output_user_cpu}" \
+      build "${COMMON_BAZEL_FLAGS[@]}" \
+      //tensorflow/tools/pip_package:build_pip_package
 
-    # Build the pip package
-    bazel --output_user_root=${output_user_cpu} build //tensorflow/tools/pip_package:build_pip_package && \
-    # Create the whl file
-    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package --dst ${build_output_cpu} #--src ${build_tmp} --dst ${build_output}
-    
-elif [ "${device}" == "tpu" ]; then
+    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package \
+      --dst "${build_output_cpu}"
 
-    # Build the pip package
-    bazel --output_user_root=${output_user_root_tpu} build --config=tpu  //tensorflow/tools/pip_package:build_pip_package && \
-    # Create the whl file
-    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package --dst ${build_output_tpu} #--src ${build_tmp} --dst ${build_output}
-    
-elif [ "${device}" == "cuda" ]; then
-    # Build the pip package
-    bazel --output_user_root=${output_user_root_cuda} build --host_linkopt=-lm //tensorflow/tools/pip_package:build_pip_package && \
-    # Create the whl file
-    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package --dst ${build_output_cuda} #--src ${build_tmp} --dst ${build_output}
-    
+elif [ "${device}" = "tpu" ]; then
+    bazel --output_user_root="${output_user_root_tpu}" \
+      build "${COMMON_BAZEL_FLAGS[@]}" \
+      --config=tpu \
+      //tensorflow/tools/pip_package:build_pip_package
+
+    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package \
+      --dst "${build_output_tpu}"
+
+elif [ "${device}" = "cuda" ]; then
+    bazel --output_user_root="${output_user_root_cuda}" \
+      build "${COMMON_BAZEL_FLAGS[@]}" \
+      --host_linkopt=-lm \
+      //tensorflow/tools/pip_package:build_pip_package
+
+    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package \
+      --dst "${build_output_cuda}"
 fi
